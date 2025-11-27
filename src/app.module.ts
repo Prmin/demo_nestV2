@@ -7,7 +7,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { TasksModule } from './tasks/tasks.module';
-import { LogsModule } from './logs/logs.module'; // << เพิ่มอันนี้
+import { LogsModule } from './log/logs.module';
 
 @Module({
   imports: [

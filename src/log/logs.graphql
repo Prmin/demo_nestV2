@@ -1,0 +1,28 @@
+type Log {
+  id: Int!
+  event: String!
+  payload: String
+  createdAt: String!
+}
+
+input CreateLogInput {
+  event: String!
+  payload: String
+}
+
+input UpdateLogInput {
+  id: Int!
+  event: String
+  payload: String
+}
+
+type Query {
+  logs: [Log!]!
+  log(id: Int!): Log
+}
+
+type Mutation {
+  createLog(createLogInput: CreateLogInput!): Log!
+  updateLog(updateLogInput: UpdateLogInput!): Log!
+  removeLog(id: Int!): Log
+}
