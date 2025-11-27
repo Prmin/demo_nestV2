@@ -1,11 +1,4 @@
-/**
- * สรุปสแตกของโปรเจ็กต์นี้ (NestJS + TypeScript + MongoDB + GraphQL schema-first + Kafka + Redis)
- * - NestJS: โครงสร้างโมดูลาร์พร้อม dependency injection ช่วยแยก concerns ชัดเจน
- * - GraphQL (schema-first): ใช้ไฟล์ *.graphql เป็นแหล่งความจริง แล้วผูก resolver ให้ตรงกับ schema
- * - MongoDB: ต่อผ่าน Mongoose (ODM) อ่านค่า URI จาก .env
- * - Kafka: ยังไม่ผูกโมดูลในโค้ด แต่เตรียม env สำหรับใช้เป็น message broker/queue
- * - Redis: ยังไม่ผูกโมดูลในโค้ด แต่เตรียม env สำหรับ cache หรือ pub/sub
- */
+// app.module.ts
 import { Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
@@ -14,32 +7,29 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { TasksModule } from './tasks/tasks.module';
+import { LogsModule } from './logs/logs.module'; // << เพิ่มอันนี้
 
 @Module({
   imports: [
-    // โหลดค่า .env เข้า process.env และประกาศเป็นโมดูล global ให้ ConfigService ใช้ได้ทุกที่
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
+    ConfigModule.forRoot({ isGlobal: true }),
 
     GraphQLModule.forRoot<ApolloDriverConfig>({
-      driver: ApolloDriver, // กำหนดให้ Apollo เป็น GraphQL server
-      typePaths: ['./**/*.graphql'], // โหมด schema-first: ดึง schema จากไฟล์ .graphql ทั้งโปรเจ็กต์
-      playground: false, // ปิด playground เดิม
-      plugins: [ApolloServerPluginLandingPageLocalDefault()], // ใช้ landing page ของ Apollo สำหรับ dev
+      driver: ApolloDriver,
+      typePaths: ['./**/*.graphql'],
+      playground: false,
+      plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
     }),
 
-    // เชื่อม MongoDB แบบ async เพื่อดึง URI จาก ConfigService (ค่าใน .env)
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGODB_URI'), // mongodb://localhost:27017/...
-        // หากต้องการเพิ่ม option: dbName, user, pass, authSource, autoIndex, retryWrites ฯลฯ ใส่ที่นี่
+        uri: configService.get<string>('MONGODB_URI'),
       }),
     }),
 
-    TasksModule, // โมดูลงานตัวอย่าง ใช้ GraphQL + MongoDB
+    TasksModule,
+    LogsModule, // << ตรงนี้แหละ Log service ในแอปเรา
   ],
 })
 export class AppModule {}
