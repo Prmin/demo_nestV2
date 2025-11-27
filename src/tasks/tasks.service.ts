@@ -11,11 +11,21 @@ import { CreateTaskInput } from './dto/create-task.input';
 import { UpdateTaskInput } from './dto/update-task.input';
 import { ClientKafka } from '@nestjs/microservices';
 
+import Redis from 'ioredis';
+import { REDIS_CLIENT } from '../redis/redis.module';
+
 @Injectable()
 export class TasksService implements OnModuleInit {
+  // key สำหรับเก็บ cache ของ list งานทั้งหมด
+  private readonly TASKS_ALL_CACHE_KEY = 'tasks:all';
+
   constructor(
     @InjectModel(TaskMongo.name)
     private readonly taskModel: Model<TaskDocument>,
+
+    // Redis client สำหรับ cache
+    @Inject(REDIS_CLIENT)
+    private readonly redis: Redis,
 
     // Kafka client สำหรับยิง event ออก topic
     @Inject('KAFKA_TASK_CLIENT')
@@ -27,8 +37,28 @@ export class TasksService implements OnModuleInit {
     await this.kafkaClient.connect();
   }
 
+  // ========== READ ALL + Redis cache ==========
   async findAll(): Promise<TaskMongo[]> {
-    return this.taskModel.find().sort({ createdAt: -1 }).exec();
+    // 1) ลองดูจาก Redis ก่อน
+    const cached = await this.redis.get(this.TASKS_ALL_CACHE_KEY);
+    if (cached) {
+      console.log('[TasksService] return tasks from Redis cache');
+      return JSON.parse(cached) as TaskMongo[];
+    }
+
+    // 2) ถ้าไม่มี cache → ยิง Mongo ปกติ
+    console.log('[TasksService] query tasks from MongoDB');
+    const tasks = await this.taskModel.find().sort({ createdAt: -1 }).exec();
+
+    // 3) เก็บผลลัพธ์ลง Redis ไว้ 60 วินาที
+    await this.redis.set(
+      this.TASKS_ALL_CACHE_KEY,
+      JSON.stringify(tasks),
+      'EX',
+      60,
+    );
+
+    return tasks;
   }
 
   async findOne(id: string): Promise<TaskMongo | null> {
@@ -41,6 +71,9 @@ export class TasksService implements OnModuleInit {
       description: input.description ?? null,
     });
     const saved = await created.save();
+
+    // ลบ cache รายการทั้งหมด เพราะข้อมูลเปลี่ยนแล้ว
+    await this.redis.del(this.TASKS_ALL_CACHE_KEY);
 
     // ยิง event เข้า Kafka topic "tasks.events"
     this.kafkaClient.emit('tasks.events', {
@@ -71,6 +104,9 @@ export class TasksService implements OnModuleInit {
 
     const saved = await task.save();
 
+    // ข้อมูลเปลี่ยน → ล้าง cache list
+    await this.redis.del(this.TASKS_ALL_CACHE_KEY);
+
     this.kafkaClient.emit('tasks.events', {
       event: 'TASK_UPDATED',
       taskId: saved._id.toString(),
@@ -86,6 +122,9 @@ export class TasksService implements OnModuleInit {
     const ok = res.deletedCount === 1;
 
     if (ok) {
+      // ลบจาก DB สำเร็จ → ล้าง cache list
+      await this.redis.del(this.TASKS_ALL_CACHE_KEY);
+
       this.kafkaClient.emit('tasks.events', {
         event: 'TASK_DELETED',
         taskId: id,

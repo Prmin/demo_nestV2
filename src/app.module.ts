@@ -8,6 +8,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { TasksModule } from './tasks/tasks.module';
 import { LogsModule } from './log/logs.module';
+import { RedisModule } from './redis/redis.module';
+
 
 @Module({
   imports: [
@@ -29,7 +31,9 @@ import { LogsModule } from './log/logs.module';
     }),
 
     TasksModule,
-    LogsModule, // << ตรงนี้แหละ Log service ในแอปเรา
+    LogsModule,
+    RedisModule, 
+    
   ],
 })
 export class AppModule {}
