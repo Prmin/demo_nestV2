@@ -1,0 +1,53 @@
+# schema-first:
+#   ไฟล์นี้เป็นต้นแบบ GraphQL schema สำหรับ Task service
+#   - กำหนดว่า type Task มีฟิลด์อะไรบ้าง และชนิดข้อมูลเป็นแบบไหน
+#   - กำหนดว่า Query / Mutation ที่ client เรียกได้มีอะไรบ้าง
+#   - GraphQLModule จะอ่านไฟล์นี้ตอนบูตแอป แล้วใช้เป็นสัญญา (API contract)
+#   - Resolver / Service ฝั่ง NestJS ต้อง implement ให้ทำงานตรงกับ type/field ที่นิยามในไฟล์นี้
+
+"""
+ตัวแทนงานหนึ่งรายการในระบบ Task ของเรา
+"""
+type Task {
+  id: ID!
+  title: String!
+  description: String
+  isDone: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+"""
+ชุดคำสั่งอ่านข้อมูล (read-only) ที่ client ใช้ดึง Task
+"""
+type Query {
+  tasks: [Task!]!
+  task(id: ID!): Task
+}
+
+"""
+ข้อมูลที่ต้องใช้ตอนสร้าง Task ใหม่ผ่าน mutation createTask
+"""
+input CreateTaskInput {
+  title: String!
+  description: String
+}
+
+"""
+ข้อมูลที่ใช้ตอนอัปเดต Task (ส่งมาเฉพาะฟิลด์ที่อยากแก้ได้)
+"""
+input UpdateTaskInput {
+  id: ID!
+  title: String
+  description: String
+  isDone: Boolean
+}
+
+"""
+คำสั่งที่ใช้เปลี่ยนแปลงข้อมูล Task (create / update / delete)
+"""
+type Mutation {
+  createTask(input: CreateTaskInput!): Task!
+  updateTask(input: UpdateTaskInput!): Task!
+  deleteTask(id: ID!): Boolean!
+}
