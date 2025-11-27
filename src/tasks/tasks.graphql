@@ -9,11 +9,34 @@
 ตัวแทนงานหนึ่งรายการในระบบ Task ของเรา
 """
 type Task {
+  """
+  รหัสเฉพาะของ Task ใช้เป็นตัวอ้างอิงหลักในระบบ
+  """
   id: ID!
+
+  """
+  ชื่อหรือหัวข้อของ Task ที่ใช้แสดงให้ผู้ใช้เห็น
+  """
   title: String!
+
+  """
+  รายละเอียดเพิ่มเติมของ Task เช่น ต้องทำอะไรหรือ note เสริม
+  """
   description: String
+
+  """
+  สถานะว่างานเสร็จแล้วหรือยัง (true = เสร็จ, false = ยังไม่เสร็จ)
+  """
   isDone: Boolean!
+
+  """
+  เวลาที่สร้าง Task นี้ครั้งแรก (timestamp)
+  """
   createdAt: String!
+
+  """
+  เวลาที่มีการแก้ไข Task ล่าสุด (timestamp)
+  """
   updatedAt: String!
 }
 
@@ -21,15 +44,34 @@ type Task {
 ชุดคำสั่งอ่านข้อมูล (read-only) ที่ client ใช้ดึง Task
 """
 type Query {
+  """
+  ดึงรายการ Task ทั้งหมดในระบบ (อาจเรียงตามเวลาสร้างหรือเงื่อนไขใน service)
+  """
   tasks: [Task!]!
-  task(id: ID!): Task
+
+  """
+  ดึง Task หนึ่งรายการจาก id ที่ระบุ
+  """
+  task(
+    """
+    ไอดีของ Task ที่ต้องการค้นหา
+    """
+    id: ID!
+  ): Task
 }
 
 """
 ข้อมูลที่ต้องใช้ตอนสร้าง Task ใหม่ผ่าน mutation createTask
 """
 input CreateTaskInput {
+  """
+  ชื่อของ Task ใหม่ (บังคับต้องมี)
+  """
   title: String!
+
+  """
+  รายละเอียดของ Task ใหม่ (ไม่มีก็ได้)
+  """
   description: String
 }
 
@@ -37,9 +79,24 @@ input CreateTaskInput {
 ข้อมูลที่ใช้ตอนอัปเดต Task (ส่งมาเฉพาะฟิลด์ที่อยากแก้ได้)
 """
 input UpdateTaskInput {
+  """
+  ไอดีของ Task ที่ต้องการอัปเดต
+  """
   id: ID!
+
+  """
+  ชื่อใหม่ของ Task (ไม่ส่ง = ไม่เปลี่ยนชื่อเดิม)
+  """
   title: String
+
+  """
+  รายละเอียดใหม่ของ Task (ไม่ส่ง = ไม่เปลี่ยนรายละเอียดเดิม)
+  """
   description: String
+
+  """
+  สถานะใหม่ของ Task (true/false) ว่าทำเสร็จแล้วหรือยัง
+  """
   isDone: Boolean
 }
 
@@ -47,7 +104,33 @@ input UpdateTaskInput {
 คำสั่งที่ใช้เปลี่ยนแปลงข้อมูล Task (create / update / delete)
 """
 type Mutation {
-  createTask(input: CreateTaskInput!): Task!
-  updateTask(input: UpdateTaskInput!): Task!
-  deleteTask(id: ID!): Boolean!
+  """
+  สร้าง Task ใหม่จากข้อมูลที่ส่งมาใน CreateTaskInput
+  """
+  createTask(
+    """
+    ข้อมูลที่ใช้สร้าง Task ใหม่
+    """
+    input: CreateTaskInput!
+  ): Task!
+
+  """
+  อัปเดต Task ที่มีอยู่แล้วด้วยข้อมูลใน UpdateTaskInput
+  """
+  updateTask(
+    """
+    ข้อมูลที่ใช้ระบุ Task และฟิลด์ที่ต้องการแก้ไข
+    """
+    input: UpdateTaskInput!
+  ): Task!
+
+  """
+  ลบ Task ตาม id ที่ระบุ คืนค่าเป็น true ถ้าลบสำเร็จ
+  """
+  deleteTask(
+    """
+    ไอดีของ Task ที่ต้องการลบ
+    """
+    id: ID!
+  ): Boolean!
 }
